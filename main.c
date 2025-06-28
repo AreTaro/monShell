@@ -34,7 +34,7 @@ int main (int argc, char * argv[]) {
         fgets(ligne, sizeof ligne, stdin) != 0;
         printf(PROMPT) ) {
 
-        decouper(ligne, "\t\n", mot, MaxMot);
+        decouper(ligne, " \t\n", mot, MaxMot);
         
         if (mot[0] == 0)  // ligne vide
             continue;
