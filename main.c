@@ -7,14 +7,14 @@
 # include <assert.h>
 
 #include "executer.h"
+#include "cmd_interne.h"
+#include "decouper.h"
 
 enum {
     MaxLigne = 1024,        // longueur max d'une ligne de commande
     MaxMot = MaxLigne / 2,  // nbre max de mot dans la ligne
     MaxDirs = 100,          // nbre max de repertoire dans PATH
 };
-
-void decouper(char *, char *, char **, int);
 
 # define PROMPT "? "
 
@@ -38,6 +38,10 @@ int main (int argc, char * argv[]) {
         if (mot[0] == 0)  // ligne vide
             continue;
 	
+        if (executer_cmd_interne(mot)) {
+            continue;
+        }
+
         executer_cmd(mot,dirs);
         }
 
