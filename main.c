@@ -16,9 +16,25 @@ enum {
     MaxDirs = 100,          // nbre max de repertoire dans PATH
 };
 
-# define PROMPT "? "
+/* Affiche le dossier courant dans le prompt
+ * et substitue le fichier HOME par le caractere ~ */
+void afficher_prompt() 
+{
+        char cwd[MaxLigne];
+        char *home_dir = getenv("HOME");
+        if (getcwd(cwd, sizeof(cwd)) != NULL) {
+                if (home_dir != NULL && strncmp(cwd, home_dir, 
+                        strlen(home_dir)) == 0) {
+                                printf("~%s? ", cwd + strlen(home_dir));
+                } else {
+                        printf("%s? ", cwd);
+                }
+                fflush(stdout);
+        }
+}
 
-int main (int argc, char * argv[]) {
+int main (int argc, char * argv[]) 
+{
     
     char ligne[MaxLigne];
     char * mot[MaxMot];
@@ -29,9 +45,9 @@ int main (int argc, char * argv[]) {
 
     /* Lire et traiter chaque ligne de commande */
     for (
-        printf(PROMPT);
+        afficher_prompt();
         fgets(ligne, sizeof ligne, stdin) != 0;
-        printf(PROMPT) ) {
+        afficher_prompt() ) {
 
         decouper(ligne, " \t\n", mot, MaxMot);
         
