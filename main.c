@@ -16,43 +16,47 @@ enum {
     MaxDirs = 100,          // nbre max de repertoire dans PATH
 };
 
+void afficher_prompt() {
+    char cwd[MaxLigne];
+    char *home_dir = getenv("HOME");
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        if (home_dir != NULL && strncmp(cwd, home_dir, strlen(home_dir)) == 0) {
+            printf("~%s? ", cwd + strlen(home_dir));
+        } else {
+            printf("%s? ", cwd);
+        }
+    } else {
+        printf("? ");
+    }
+    fflush(stdout);
+}
+
 int main (int argc, char * argv[]) {
     
     char ligne[MaxLigne];
     char * mot[MaxMot];
     char * dirs[MaxDirs];
-    char cwd[MaxLigne];
 
     /* Decouper une partie de PATH en repertoires */
     decouper(strdup(getenv("PATH")),":",dirs, MaxDirs);
 
     /* Lire et traiter chaque ligne de commande */
-    for ( ; ; ) {
-        char *home_dir = getenv("HOME");
-        if (getcwd(cwd, sizeof(cwd)) != NULL) {
-            if (home_dir != NULL && strncmp(cwd, home_dir, strlen(home_dir)) == 0) {
-                printf("~%s? ", cwd + strlen(home_dir));
-            } else {
-                printf("%s? ", cwd);
-            }
-        } else {
-            printf("? ");
-        }
-
-        if (fgets(ligne, sizeof ligne, stdin) == 0) break;
-
+    for (
+        afficher_prompt();
+        fgets(ligne, sizeof ligne, stdin) != 0;
+        afficher_prompt()
+    ) {
         decouper(ligne, " \t\n", mot, MaxMot);
         
         if (mot[0] == 0)  // ligne vide
             continue;
 
         if (executer_cmd_interne(mot)) {
-                continue;
+            continue;
         }
 	
         executer_cmd(mot,dirs);
-
-        }
+    }
 
     printf("Bye\n");
     return 0;
