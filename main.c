@@ -5,6 +5,7 @@
 # include <sys/types.h>
 # include <sys/wait.h>
 # include <assert.h>
+# include <signal.h>
 
 #include "executer.h"
 #include "cmd_interne.h"
@@ -33,12 +34,28 @@ void afficher_prompt()
         }
 }
 
+void recuperer_fils() {
+    int status;
+    pid_t pid;
+
+    while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+        if (WIFEXITED(status)) {
+            printf("[%d] Done\n", pid);
+        } else if (WIFSIGNALED(status)) {
+            printf("[%d] Terminated by signal %d\n", pid, WTERMSIG(status));
+        }
+    }
+}
+
 int main (int argc, char * argv[]) 
 {
     
     char ligne[MaxLigne];
     char * mot[MaxMot];
     char * dirs[MaxDirs];
+    int arriere_plan;
+
+    signal(SIGINT, SIG_IGN);
 
     /* Decouper une partie de PATH en repertoires */
     decouper(strdup(getenv("PATH")),":",dirs, MaxDirs);
@@ -49,7 +66,9 @@ int main (int argc, char * argv[])
         fgets(ligne, sizeof ligne, stdin) != 0;
         afficher_prompt() ) {
 
-        decouper(ligne, " \t\n", mot, MaxMot);
+        recuperer_fils();
+
+        arriere_plan = decouper(ligne, " \t\n", mot, MaxMot);
         
         if (mot[0] == 0)  // ligne vide
             continue;
@@ -58,7 +77,7 @@ int main (int argc, char * argv[])
                 continue;
         }
 	
-        executer_cmd(mot,dirs);
+        executer_cmd(mot,dirs, arriere_plan);
 
         }
 

@@ -3,15 +3,20 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <signal.h>
 
 enum {
         MaxPathLength = 512, // longueur max d'un nom de fichier
 };
 
-void executer_cmd(char **mot, char **dirs) {
-       int tmp;
+void executer_cmd(char **mot, char **dirs, int arriere_plan) {
+       pid_t tmp;
        char pathname[MaxPathLength];
        int i;
+
+        if (!arriere_plan) {
+            signal(SIGINT, SIG_DFL);
+        }
 
         tmp = fork();     // lancer le processus enfant
 
@@ -20,12 +25,23 @@ void executer_cmd(char **mot, char **dirs) {
             return;
         }
 
-        if (tmp != 0) {
-            while(wait(0) != tmp);
+        if (tmp != 0) { // Pere
+            if (!arriere_plan) {
+                waitpid(tmp, NULL, 0);
+                signal(SIGINT, SIG_IGN);
+            } else {
+                printf("[%d]\n", tmp);
+            }
             return;
         }
 
-        // enfant: exec du programme
+        // Enfant
+        if (arriere_plan) {
+            setpgid(0, 0);
+        } else {
+            signal(SIGINT, SIG_DFL); // Assurer que le fils ne l'ignore pas
+        }
+
         for(i = 0; dirs[i] != 0; i++) {
             snprintf(pathname, sizeof pathname, "%s/%s", dirs[i], mot[0]);
             execv(pathname, mot);

@@ -6,11 +6,14 @@
 # include <string.h>
 # include <stdlib.h>
 
-/* decouper -- decouper une chaine en mots */
+/* decouper -- decouper une chaine en mots 
+*  retourne 1 si la commande est en arriere plan, 0 sinon
+*/
 
 int decouper (char * ligne, char * separ, char * mot[], int maxmot) {
 
     int i;
+    int arriere_plan = 0;
 
     mot[0] = strtok(ligne, separ); // Decoupe la ligne de commande
 
@@ -26,7 +29,12 @@ int decouper (char * ligne, char * separ, char * mot[], int maxmot) {
         mot[i] = strtok(NULL, separ); // Copie chaque mot dans un tableau
     }
 
-    return i;
+    if (i > 1 && strcmp(mot[i-2], "&") == 0) {
+        arriere_plan = 1;
+        mot[i-2] = NULL;
+    }
+
+    return arriere_plan;
 
 }
 
