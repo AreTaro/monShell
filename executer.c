@@ -5,7 +5,7 @@
 #include <sys/wait.h>
 #include <signal.h> // Pour gerer Ctrl + C dans arriere plan
 #include <fcntl.h> // Pour gerer les flags de open()
-#include <redirection.h>
+#include "redirection.h"
 
 enum {
         MaxPathLength = 512, // longueur max d'un nom de fichier
@@ -54,7 +54,7 @@ void executer_cmd(char **mot, char **dirs, int arriere_plan) {
 		        perror(fichier_entree);
 			exit(1);
 		}
-		if (dup2(fd_in, STDIN_FILEN0) == -1) {
+		if (dup2(fd_in, STDIN_FILENO) == -1) {
                         perror("dup2 stdin");
 			exit(1);
 		}
@@ -70,7 +70,7 @@ void executer_cmd(char **mot, char **dirs, int arriere_plan) {
                         flags |= O_APPEND;
                 }
 
-	        fd_oud = open(fichier_sortie, flag, 0666); // 066 = rw-rw-rw-
+	        fd_out = open(fichier_sortie, flags, 0666); // 066 = rw-rw-rw-
 		if (fd_out == -1) {
 		        perror(fichier_sortie);
 			exit(1);
