@@ -77,7 +77,7 @@ int main (int argc, char * argv[])
         if (mot[0] == 0)  // ligne vide
             continue;
 
-	chercher_redirection(mot);
+	chercher_redirections(mot);
 
         if (executer_cmd_interne(mot)) {
                 continue;
