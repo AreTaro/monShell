@@ -20,8 +20,43 @@ void chercher_redirections(char *mot[])
 
 	while (mot[i] != NULL) {
 	        if (strcmp(mot[i], "<") == 0) {
-                        fichier_entree = mot[i+1];
-                        i += 2; // On saute le chevron et le nom de fichier
-                } else {}
+		        if (mot[i+1] != NULL) {
+                                fichier_entree = mot[i+1];
+                                i += 2; // On saute chevron et nom de fichier
+                } else {
+                        fprintf(stderr, "Erreur: nom de fichier manquant apres \
+                                le chevon <\n");
+			i++;
+                }
+        } else if (strcmp(mot[i], ">") == 0) {
+	        if (mot[i+1] != NULL ) {
+		        mode_sortie = 1; // Mode ecrassement
+			fichier_sortie = mot[i+1];
+			i += 2;
+		} else {
+		        fprintf(stderr, "Erreur: nom de fichier manquant apres \
+				le chevron >\n");
+			i++;
+                }
+	} else if (strcmp(mot[i], ">>") == 0) {
+	        if (mot[i+1] != NULL) {
+		        mode_sortie = 2; // Mode ajout
+			fichier_sortie = mot[i+1];
+			i += 2;
+		} else {
+		        fprintf(stderr, "Erreur: nom de fichier manquant apres \
+				le chevron >>\n");
+			i++;
+	       }
+        } else {
+	        // Ce n'est pas une redirection, on garde l'argument
+	        mot[j] = mot[i];
+		j++;
+		i++;
         }
+
+	// On termine la nouvelle liste d'arguments compactée
+	mot[j] = NULL;
+
+	}
 }
