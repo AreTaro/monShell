@@ -4,6 +4,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <signal.h> // Pour gerer Ctrl + C dans arriere plan
+#include <fcntl.h> // Pour gerer les flags de open()
+#include <redirection.h>
 
 enum {
         MaxPathLength = 512, // longueur max d'un nom de fichier
