@@ -10,6 +10,7 @@
 #include "executer.h"
 #include "cmd_interne.h"
 #include "decouper.h"
+#include "redirection.h"
 
 enum {
     MaxLigne = 1024,        // longueur max d'une ligne de commande
@@ -75,6 +76,8 @@ int main (int argc, char * argv[])
  
         if (mot[0] == 0)  // ligne vide
             continue;
+
+	chercher_redirection(mot);
 
         if (executer_cmd_interne(mot)) {
                 continue;
