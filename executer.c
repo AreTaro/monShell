@@ -47,7 +47,7 @@ void executer_cmd(char **mot, char **dirs, int arriere_plan) {
 	// --- DEBUT BLOC REDIRECTION ---
 	int fd_in, fd_out;
 
-	// Redirection de l'entrée
+	// Redirection de l'entree
 	if (fichier_entree != NULL) {
                 fd_in = open(fichier_entree, O_RDONLY);
 		if (fd_in == -1) {

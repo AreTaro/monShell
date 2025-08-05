@@ -1,3 +1,6 @@
+/* redirection.h
+ * definit les variables globales et la fonction chercher_redirections
+ */
 #ifndef REDIRECTION_H
 #define REDIRECTION_H
 

@@ -1,3 +1,10 @@
+/*
+ * chercher_redirections
+ * argument: le tableau d'argument char *mot[]
+ * Definit les variables globales du mode sortie utilise, ainsi que des 
+ * nom des fichiers en entree et en sortie.
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
