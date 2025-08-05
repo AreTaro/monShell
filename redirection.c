@@ -55,8 +55,9 @@ void chercher_redirections(char *mot[])
 		i++;
         }
 
+	}
+
 	// On termine la nouvelle liste d'arguments compactée
 	mot[j] = NULL;
 
-	}
 }
