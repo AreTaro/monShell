@@ -1,42 +1,54 @@
 /* cn-decouper.c
-  Un wrapper autour de strtok
+  Nouvelle version qui gère les pipes |
 */
 
 # include <stdio.h>
 # include <string.h>
 # include <stdlib.h>
+# include "decouper.h"
 
-/* decouper -- decouper une chaine en mots 
- * retourne 1 si la commande est en arrière plan, 0 sinon */
+/* decouper -- decouper une chaine en commandes, puis en mots
+ * retourne le nombre de commandes trouvées.
+ */
+int decouper(char *ligne, Commandes cmds, int *arriere_plan) {
+    char *saveptr_pipe, *saveptr_space;
+    char *cmd_str;
+    int cmd_count = 0;
 
-int decouper (char * ligne, char * separ, char * mot[], int maxmot) {
+    // On vérifie d'abord si la commande doit être en arrière-plan.
+    // On cherche le caractère '&' à la fin de la ligne.
+    *arriere_plan = 0;
+    char *bg_char = strchr(ligne, '&');
+    if (bg_char != NULL) {
+        *arriere_plan = 1;
+        *bg_char = '\0'; // On supprime le '&' pour ne pas qu'il soit traité comme un argument.
+    }
 
-    int i;
-    int arriere_plan = 0;
+    // Étape 1: Découpage de la ligne principale en fonction du délimiteur de pipe "|".
+    // On utilise strtok_r pour permettre un découpage imbriqué et sécurisé.
+    for (cmd_str = strtok_r(ligne, "|", &saveptr_pipe); cmd_str != NULL && cmd_count < MAX_CMDS; cmd_str = strtok_r(NULL, "|", &saveptr_pipe)) {
+        
+        char *mot;
+        int mot_count = 0;
 
-    mot[0] = strtok(ligne, separ); // Decoupe la ligne de commande
-
-    for (i = 1; mot[i-1] != 0; i++) {
-
-        // Gestion des erreurs (ligne de commande trop longue)
-        if (i == maxmot) {
-            fprintf(stderr, "Erreur de la fonction decouper: trop de mots\n");
-            mot[i-1]=0;
-            break;
+        // Étape 2: Pour chaque commande, on la découpe en mots (arguments).
+        // Le délimiteur est un ensemble d'espaces, tabulations et sauts de ligne.
+        for (mot = strtok_r(cmd_str, " \t\n", &saveptr_space); mot != NULL && mot_count < MAX_MOTS - 1; mot = strtok_r(NULL, " \t\n", &saveptr_space)) {
+            cmds[cmd_count][mot_count++] = mot;
         }
-
-        mot[i] = strtok(NULL, separ); // Copie chaque mot dans un tableau
+        cmds[cmd_count][mot_count] = NULL; // On termine chaque liste d'arguments par NULL, comme l'exige execvp.
+        
+        // On ne compte la commande que si elle contient au moins un mot.
+        if (mot_count > 0) {
+            cmd_count++;
+        }
     }
 
-    /* Recherche le dernier caractere de la ligne de commande, et le
-     * supprime de la liste des arguments si c'est &, en retournant 1 pour
-     * indiquer que le processus est à exécuter en arriere plan */
-    if (i > 1 && strcmp(mot[i-2], "&") == 0) {
-        arriere_plan = 1;
-        mot[i-2] = NULL;
+    if (cmd_count >= MAX_CMDS) {
+        fprintf(stderr, "Erreur: Trop de commandes dans le pipe (limite: %d)\n", MAX_CMDS);
+        return -1; // Retourne une erreur
     }
 
-    return arriere_plan;
-
+    return cmd_count;
 }
 
