@@ -6,6 +6,8 @@
 # include <sys/wait.h>
 # include <assert.h>
 # include <signal.h>
+# include <readline/readline.h>
+# include <readline/history.h>
 
 #include "executer.h"
 #include "cmd_interne.h"
@@ -17,21 +19,25 @@ enum {
     MaxDirs = 100,          // nbre max de repertoire dans PATH
 };
 
-/* Affiche le dossier courant dans le prompt
+/* Construit la chaine de caractere du prompt
  * et substitue le fichier HOME par le caractere ~ */
-void afficher_prompt() 
+char* creer_prompt() 
 {
+        static char prompt[MaxLigne];
         char cwd[MaxLigne];
         char *home_dir = getenv("HOME");
-        if (getcwd(cwd, sizeof(cwd)) != NULL) {
-                if (home_dir != NULL && strncmp(cwd, home_dir, 
-                        strlen(home_dir)) == 0) {
-                                printf("~%s? ", cwd + strlen(home_dir));
-                } else {
-                        printf("%s? ", cwd);
-                }
-                fflush(stdout);
+
+        if (getcwd(cwd, sizeof(cwd)) == NULL) {
+            perror("getcwd");
+            snprintf(prompt, sizeof(prompt), "? ");
+        } else {
+            if (home_dir != NULL && strncmp(cwd, home_dir, strlen(home_dir)) == 0) {
+                snprintf(prompt, sizeof(prompt), "~%s? ", cwd + strlen(home_dir));
+            } else {
+                snprintf(prompt, sizeof(prompt), "%s? ", cwd);
+            }
         }
+        return prompt;
 }
 
 /* Recupere les processus termines pour eviter les zombies */
@@ -64,7 +70,7 @@ void decouper_path(char* path, char* dirs[], int max_dirs) {
 int main (int argc, char * argv[]) 
 {
     
-    char ligne[MaxLigne];
+    char *ligne;
     Commandes cmds;
     char * dirs[MaxDirs];
     int arriere_plan;
@@ -77,30 +83,42 @@ int main (int argc, char * argv[])
     decouper_path(getenv("PATH"), dirs, MaxDirs);
 
     /* Lire et traiter chaque ligne de commande */
-    for (
-        afficher_prompt();
-        fgets(ligne, sizeof ligne, stdin) != 0;
-        afficher_prompt() 
-    ) {
+    for (;;) {
+        char* prompt = creer_prompt();
+        ligne = readline(prompt);
+
+        if (ligne == NULL) { // Ctrl+D pour quitter
+            break;
+        }
+
+        if (strlen(ligne) == 0) {
+            free(ligne);
+            continue;
+        }
+
+        add_history(ligne);
 
         /* Recherche les processus zombies */
         recuperer_enfant();
 
         nb_cmds = decouper(ligne, cmds, &arriere_plan);
  
-        if (nb_cmds <= 0) { // Ligne vide ou erreur de decoupage
+        if (nb_cmds <= 0) { // Erreur de decoupage
+            free(ligne);
             continue;
         }
 	
 	if (nb_cmds == 1) {
 	/* Commande interne non gere par la redirection */
 	        if (executer_cmd_interne(cmds[0])) {
+                  free(ligne);
 		  continue; // si commande interne
                 }
         }
 
 	executer_pipeline(cmds, nb_cmds, dirs, arriere_plan);
 	
+        free(ligne);
     }
 
     printf("Bye\n");
