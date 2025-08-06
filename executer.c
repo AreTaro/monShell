@@ -37,7 +37,7 @@ static void executer_une_commande(char **mot, char **dirs) {
 	        int flags = O_WRONLY | O_CREAT;
 		// TRUNC pour > et APPEND pour >> 
 		flags |= (mode_sortie == 1) ? O_TRUNC : O_APPEND;
-		int fd_out = open(fichier_sortie, flags, 0066);
+		int fd_out = open(fichier_sortie, flags, 0666);
 		if (fd_out == -1) {
 		        perror(fichier_sortie);
 			exit(1);
