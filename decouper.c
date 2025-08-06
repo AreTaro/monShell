@@ -46,7 +46,7 @@ int decouper (char * ligne, Commandes cmds, int* arriere_plan) {
 	}
 
         if (cmd_count >= MAX_CMDS) {
-	        fprintf(stderr, "Erreur : Trop de commandes dans le pipe\n",
+	        fprintf(stderr, "Erreur : Trop de commandes (limite: %d)\n",
 			MAX_CMDS);
 		return -1; // retourne une erreur
         }
