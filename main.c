@@ -14,7 +14,6 @@
 
 enum {
     MaxLigne = 1024,        // longueur max d'une ligne de commande
-    MaxMot = MaxLigne / 2,  // nbre max de mot dans la ligne
     MaxDirs = 100,          // nbre max de repertoire dans PATH
 };
 
@@ -50,42 +49,59 @@ void recuperer_enfant() {
         }
 }
 
+void decouper_path(char* path, char* dirs[], int max_dirs) {
+        char *path_copy = strdup(path);
+	char *token;
+	int i = 0;
+	token = strtok(path_copy, ":");
+	while (token != NULL && i < max_dirs -1) {
+	        dirs[i++] = token;
+		token = strtok(NULL, ":");
+	}
+	dirs[i] = NULL;
+}
+
 int main (int argc, char * argv[]) 
 {
     
     char ligne[MaxLigne];
-    char * mot[MaxMot];
+    Commandes cmds;
     char * dirs[MaxDirs];
     int arriere_plan;
+    int nb_cmds;
 
-    signal(SIGINT, SIG_IGN);
+    /* Shell principal ignore Ctrl + C */
+    signal(SIGINT, SIG_IGN); 
 
     /* Decouper une partie de PATH en repertoires */
-    decouper(strdup(getenv("PATH")),":",dirs, MaxDirs);
+    decouper_path(getenv("PATH"), dirs, MaxDirs);
 
     /* Lire et traiter chaque ligne de commande */
     for (
         afficher_prompt();
         fgets(ligne, sizeof ligne, stdin) != 0;
-        afficher_prompt() ) {
+        afficher_prompt() 
+    ) {
 
         /* Recherche les processus zombies */
         recuperer_enfant();
 
-        arriere_plan = decouper(ligne, " \t\n", mot, MaxMot);
+        nb_cmds = decouper(ligne, cmds, &arriere_plan);
  
-        if (mot[0] == 0)  // ligne vide
+        if (nb_cmds <= 0) { // Ligne vide ou erreur de decoupage
             continue;
-
-	chercher_redirections(mot);
-
-        if (executer_cmd_interne(mot)) {
-                continue;
         }
 	
-        executer_cmd(mot,dirs, arriere_plan);
-
+	if (nb_cmds == 1) {
+	/* Commande interne non gere par la redirection */
+	        if (executer_cmd_interne(cmds[0])) {
+		  continue; // si commande interne
+                }
         }
+
+	executer_pipeline(cmds, nb_cmds, dirs, arriere_plan);
+	
+    }
 
     printf("Bye\n");
     return 0;

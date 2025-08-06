@@ -3,92 +3,158 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <signal.h> // Pour gerer Ctrl + C dans arriere plan
-#include <fcntl.h> // Pour gerer les flags de open()
+#include <signal.h> // Pour gerer Ctrl + C dans arriere plan et + encore
+#include <fcntl.h> // Pour gerer les flags de open() et + encore
 #include "redirection.h"
+#include "executer.h"
+
 
 enum {
         MaxPathLength = 512, // longueur max d'un nom de fichier
 };
 
-void executer_cmd(char **mot, char **dirs, int arriere_plan) {
-        pid_t tmp;
+// Fonction interne pour executer une seule commande
+void executer_une_commande(char **mot, char **dirs, char **dirs) {
         char pathname[MaxPathLength];
         int i;
 
-        if (!arriere_plan) {
-	        signal(SIGINT,SIG_DFL);
-        }
-
-        tmp = fork();     // lancer le processus enfant
-
-        if (tmp < 0) {
-            perror("fork");
-            return;
-        }
-
-        if (tmp != 0) { // Parent
-                if (!arriere_plan) {
-                        waitpid(tmp, NULL, 0);
-			signal(SIGINT, SIG_IGN);
-                } else {
-                        printf("[%d]\n", tmp);
-                }
-            return;
-        }
-
-        // enfant: exec du programme
-	if (arriere_plan) {
-                setpgid(0, 0);
-        } else {
-                signal(SIGINT, SIG_DFL); // Enfant ignore pas le signal
-        }  
-
-	// --- DEBUT BLOC REDIRECTION ---
-	int fd_in, fd_out;
-
-	// Redirection de l'entree
-	if (fichier_entree != NULL) {
-                fd_in = open(fichier_entree, O_RDONLY);
+	// Gerer les redirections de fichiers si elles ont ete detectees
+	if(fichier_entree != NULL) {
+	        int fd_in = open(fichier_entree, O_RDONLY);
 		if (fd_in == -1) {
-		        perror(fichier_entree);
-			exit(1);
-		}
-		if (dup2(fd_in, STDIN_FILENO) == -1) {
-                        perror("dup2 stdin");
+		        perror("dup2 stdin");
 			exit(1);
 		}
 		close(fd_in);
 	}
 
-	// Redirection de la sortie
 	if (mode_sortie > 0) {
 	        int flags = O_WRONLY | O_CREAT;
-		if (mode_sortie == 1) { // >
-		        flags |= O_TRUNC;
-		} else { // >>
-                        flags |= O_APPEND;
-                }
-
-	        fd_out = open(fichier_sortie, flags, 0666); // 066 = rw-rw-rw-
+		/* TRUNC pour > et APPEND pour >> */
+		flags |= (mode_sortie == 1) ? O_TRUNC : O_APPEND;
+		int fd_out = open(fichier_sortie, flags, 0066);
 		if (fd_out == -1) {
 		        perror(fichier_sortie);
 			exit(1);
-                }
+		}
+
 		if (dup2(fd_out, STDOUT_FILENO) == -1) {
 		        perror("dup2 stdout");
 			exit(1);
 		}
 		close(fd_out);
-        }
-	// --- FIN BLOC REDIRECTION
+	}
 
-        for(i = 0; dirs[i] != 0; i++) {
-            snprintf(pathname, sizeof pathname, "%s/%s", dirs[i], mot[0]);
-            execv(pathname, mot);
-        }
+	// Chercher et execter la commandee dans les repertoires du PATH
+	for (i = 0; dirs[i] != 0; i++) {
+	        snprintf(pathname, sizeof pathname, "%s/%s", dirs[i], mot[0]);
+		execv(pathname, mot);
+	}
 
-        fprintf( stderr, "%s: not found\n", mot[0]);
-        exit(1);
+	/* Si execv retourne, c'est qu'il y a une erreur */
+	fprintf(stderr, "%s: command not found\n", mot[0]);
+	exit(1);
 
 }
+
+void executer_pipeline(Commandes, 
+		       cmds, 
+		       int nb_cmds, 
+		       char **dirs, 
+		       int arriere_plan) {
+        pid_t group_pid;
+	/* Si en arriere plan, on fork une premiere fois 
+	 * Le parent affiche le PID et l'enfant execute le pipeline */
+	if (arriere_plan) {
+	        group_pid = fork();
+		if (group_pid < 0) {
+		        perror("fork");
+			return;
+		} 
+		if (group_pid > 0) { // Parent
+			    printf("[%d]\n, group_pid);
+			    return;
+		}
+		/* Enfant (futur leader du groupe de processus */
+		setpgid(0,0); // Se detache du Shell
+	}
+
+	int i;
+	pid_t pid;
+	int fd_in = STDIN_FILENO;
+	int pipefd[2];
+	pid_t pids[MAX_CMDS];
+
+	if (!arriere_plan) {
+	        signal(SIGINT, SIG_DFL);
+	} else {
+	        /* les processus en arriere non tues par Ctrl + c */
+	        signal(sIGINT, SIG_IGN);
+	}
+
+	for (i = 0; i < nb_cmds; i++) {
+	        /* Creer un pipe pour toutes les commandes sauf la derniere */
+	        if (i < mb_cmds -1) {
+		        if (pipe(pipefd) < 0) {
+			        perror("pipe");
+				exit(EXIT_FAILURE);
+			}
+		}
+		
+		if (pid == 0) { // enfant
+		        if (!arriere_plan) {
+			        signal(SIGINT, SIG_DFL);
+			 }
+
+			/* rediriger l'entree standard si pas premier commande */
+			if (fd_in != STDIN_FILENO) {
+			        dup2(fd_in, STDIN_FILENO);
+				close(fd_in);
+			}
+
+			/* rediriger la sortie standard si pas derniere cmde */
+		        if (i < nb_cmds -1) {
+			        close(pipefd[0]);
+				dup2(pipefd[1], STDOUT_FILENO);
+				close(pipefd[1]);
+			}
+
+			/* Analyser la commande actuelle pour > et < */
+			chercher_redirection(cmds[i]);
+
+			/* executer la commande */
+			executer_une_commande(cmds[i], dirs);
+		}
+
+		/* Procesus Parent 
+		 * stock le PID de l'enfant */
+		pids[i] = pid; 
+
+		/* Fermer le descripteur d'entree du pipe precedent */
+		if (fd_in != STDIN_FILENO) {
+		        close(fd_in);
+		}
+
+	        /* Prochaine iteration, entree sera sortie pipe actuel */
+		if (i < nb_cmds -1) {
+		        close(pipefd[1]); // parent ecrit plus
+			fd_in = pipefd[0];
+		}
+
+        }
+
+	/* Process leader groupe attend enfants */
+	for (i = 0; i < nb_cmds; i++) {
+	        waitpid(pids[i], NULL, 0);
+	}
+
+	/* Si processus leader groupe alors doit terminer */
+	if (arriere_plan) {
+	        exit(0);
+	}
+
+	/* Si premier plan, restauration */
+	signal(SIGINT, SIG_IGN);
+
+}
+

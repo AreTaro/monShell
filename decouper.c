@@ -1,42 +1,57 @@
 /* cn-decouper.c
-  Un wrapper autour de strtok
+ * Une nouvelle version qui gere les pipes
 */
 
 # include <stdio.h>
 # include <string.h>
 # include <stdlib.h>
+# include "decouper.h"
 
-/* decouper -- decouper une chaine en mots 
- * retourne 1 si la commande est en arrière plan, 0 sinon */
+/* decouper -- decouper une chaine en commandes, puis en mots
+ * retourne le nombre de commande trouvees */
 
-int decouper (char * ligne, char * separ, char * mot[], int maxmot) {
+int decouper (char * ligne, Commandes cmds, int* arriere_plan) {
+        char *saveptr_pipe, *saveptr_space;
+	char *cmd_str;
+	int cmd_out = 0;
 
-    int i;
-    int arriere_plan = 0;
+	// On verifie d'abord si la commande doit etre en arrire plan
+	// On cherche le caractere & a la fin de la ligne
+	*arriere_plan = 0;
+	char *bg_char = strchr(ligne, '&');
+	if (bg_char != NULL) {
+	          *arriere_plan = 1;
+		  *bg_char = '\0'; // on supprime le & pour ne pas le traiter
+	}
 
-    mot[0] = strtok(ligne, separ); // Decoupe la ligne de commande
+	// etape 1 : decoupage en fonction de |
+	for (cmd_str = strtok_r(ligne, "|", &saveptr_pipe);
+	     cmd_str != NULL && cmd_count < MAX_CMDS; 
+	     cmd_str != strtok_r(NULL, "|", &saveptr_pipe)) {
+	        char *mot;
+		int mot_count = 0;
 
-    for (i = 1; mot[i-1] != 0; i++) {
+		// etape 2 : decouper chaque commande en mots
+		for (mot = strtok_r(cmd_str, " \t\n", &saveptr_space);
+		     mot != NULL && cmd_count < MAX_MOTS -1;
+		     mot = strtok_r(NULL, " \t\n", &saveptr_space)) {
+		        cmds[cmd_count][mot_count++] = mot;
+		}
+		cmds[cmd_count][mot_count] = NULL; // termine liste par NULL
 
-        // Gestion des erreurs (ligne de commande trop longue)
-        if (i == maxmot) {
-            fprintf(stderr, "Erreur de la fonction decouper: trop de mots\n");
-            mot[i-1]=0;
-            break;
+		// compte commande si au moins un mot
+		if (mot_count > 0) {
+		        cmd_count++;
+		}
+	}
+
+        if (cmd_count >= MAX_CMDS) {
+	        fprintf(stderr, "Erreur : Trop de commandes dans le pipe\n",
+			MAX_CMDS);
+		return -1; // retourne une erreur
         }
-
-        mot[i] = strtok(NULL, separ); // Copie chaque mot dans un tableau
-    }
-
-    /* Recherche le dernier caractere de la ligne de commande, et le
-     * supprime de la liste des arguments si c'est &, en retournant 1 pour
-     * indiquer que le processus est à exécuter en arriere plan */
-    if (i > 1 && strcmp(mot[i-2], "&") == 0) {
-        arriere_plan = 1;
-        mot[i-2] = NULL;
-    }
-
-    return arriere_plan;
+       
+	return cmd_count;
 
 }
 
