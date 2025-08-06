@@ -13,9 +13,9 @@ enum {
         MaxPathLength = 512, // longueur max d'un nom de fichier
 };
 
-/*
+
 // Fonction interne pour executer une seule commande
-void executer_une_commande(char **mot, char **dirs) {
+static void executer_une_commande(char **mot, char **dirs) {
         char pathname[MaxPathLength];
         int i;
 
@@ -59,52 +59,6 @@ void executer_une_commande(char **mot, char **dirs) {
 	// Si execv retourne, c'est qu'il y a une erreur 
 	fprintf(stderr, "%s: command not found\n", mot[0]);
 	exit(1);
-
-} */
-
-// Fonction interne pour exécuter UNE SEULE commande. C'est le coeur de l'ancien executer_cmd.
-static void executer_une_commande(char **mot, char **dirs) {
-    char pathname[MaxPathLength];
-    int i;
-
-    // Gérer les redirections de fichiers si elles ont été détectées
-    if (fichier_entree != NULL) {
-        int fd_in = open(fichier_entree, O_RDONLY);
-        if (fd_in == -1) {
-            perror(fichier_entree);
-            exit(1);
-        }
-        if (dup2(fd_in, STDIN_FILENO) == -1) {
-            perror("dup2 stdin");
-            exit(1);
-        }
-        close(fd_in);
-    }
-
-    if (mode_sortie > 0) {
-        int flags = O_WRONLY | O_CREAT;
-        flags |= (mode_sortie == 1) ? O_TRUNC : O_APPEND; // TRUNC pour > et APPEND pour >>
-        int fd_out = open(fichier_sortie, flags, 0666);
-        if (fd_out == -1) {
-            perror(fichier_sortie);
-            exit(1);
-        }
-        if (dup2(fd_out, STDOUT_FILENO) == -1) {
-            perror("dup2 stdout");
-            exit(1);
-        }
-        close(fd_out);
-    }
-
-    // Chercher et exécuter la commande dans les répertoires du PATH
-    for (i = 0; dirs[i] != 0; i++) {
-        snprintf(pathname, sizeof pathname, "%s/%s", dirs[i], mot[0]);
-        execv(pathname, mot);
-    }
-
-    // Si execv retourne, c'est qu'il y a eu une erreur
-    fprintf(stderr, "%s: command not found\n", mot[0]);
-    exit(1);
 }
 
 
@@ -213,4 +167,3 @@ void executer_pipeline(Commandes cmds,
 	signal(SIGINT, SIG_IGN);
 
 }
-
