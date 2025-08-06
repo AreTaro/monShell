@@ -17,6 +17,6 @@ typedef struct {
 
         // Mode de redirection de sortie
         int append_out; // Mis a 1 se la redirection est en mode ajout (>>), 0 sinon,
-}
+} CommandeSimple;
 
 #eniif

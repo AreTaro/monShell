@@ -14,7 +14,7 @@ enum {
 };
 
 // Fonction interne pour executer une seule commande
-void executer_une_commande(char **mot, char **dirs, char **dirs) {
+void executer_une_commande(char **mot, char **dirs) {
         char pathname[MaxPathLength];
         int i;
 
@@ -22,6 +22,10 @@ void executer_une_commande(char **mot, char **dirs, char **dirs) {
 	if(fichier_entree != NULL) {
 	        int fd_in = open(fichier_entree, O_RDONLY);
 		if (fd_in == -1) {
+		        perror(fichier_entree);
+			exit(1);
+		}
+		if (dup2(fd_in, STDIN_FILENO) == -1) {
 		        perror("dup2 stdin");
 			exit(1);
 		}
@@ -57,8 +61,7 @@ void executer_une_commande(char **mot, char **dirs, char **dirs) {
 
 }
 
-void executer_pipeline(Commandes, 
-		       cmds, 
+void executer_pipeline(Commandes cmds, 
 		       int nb_cmds, 
 		       char **dirs, 
 		       int arriere_plan) {
@@ -72,7 +75,7 @@ void executer_pipeline(Commandes,
 			return;
 		} 
 		if (group_pid > 0) { // Parent
-			    printf("[%d]\n, group_pid);
+			    printf("[%d]\n", group_pid);
 			    return;
 		}
 		/* Enfant (futur leader du groupe de processus */
@@ -89,17 +92,23 @@ void executer_pipeline(Commandes,
 	        signal(SIGINT, SIG_DFL);
 	} else {
 	        /* les processus en arriere non tues par Ctrl + c */
-	        signal(sIGINT, SIG_IGN);
+	        signal(SIGINT, SIG_IGN);
 	}
 
 	for (i = 0; i < nb_cmds; i++) {
 	        /* Creer un pipe pour toutes les commandes sauf la derniere */
-	        if (i < mb_cmds -1) {
+	        if (i < nb_cmds -1) {
 		        if (pipe(pipefd) < 0) {
 			        perror("pipe");
 				exit(EXIT_FAILURE);
 			}
 		}
+
+		pid = fork();
+		if (pid  < 0) {
+		        perror("fork");
+			exit(EXIT_FAILURE);
+	        }
 		
 		if (pid == 0) { // enfant
 		        if (!arriere_plan) {
@@ -120,7 +129,7 @@ void executer_pipeline(Commandes,
 			}
 
 			/* Analyser la commande actuelle pour > et < */
-			chercher_redirection(cmds[i]);
+			chercher_redirections(cmds[i]);
 
 			/* executer la commande */
 			executer_une_commande(cmds[i], dirs);

@@ -13,7 +13,7 @@
 int decouper (char * ligne, Commandes cmds, int* arriere_plan) {
         char *saveptr_pipe, *saveptr_space;
 	char *cmd_str;
-	int cmd_out = 0;
+	int cmd_count = 0;
 
 	// On verifie d'abord si la commande doit etre en arrire plan
 	// On cherche le caractere & a la fin de la ligne
@@ -27,7 +27,7 @@ int decouper (char * ligne, Commandes cmds, int* arriere_plan) {
 	// etape 1 : decoupage en fonction de |
 	for (cmd_str = strtok_r(ligne, "|", &saveptr_pipe);
 	     cmd_str != NULL && cmd_count < MAX_CMDS; 
-	     cmd_str != strtok_r(NULL, "|", &saveptr_pipe)) {
+	     cmd_str = strtok_r(NULL, "|", &saveptr_pipe)) {
 	        char *mot;
 		int mot_count = 0;
 
