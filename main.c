@@ -6,6 +6,8 @@
 # include <sys/wait.h>
 # include <assert.h>
 # include <signal.h>
+# include <readline/readline.h>
+# include <readline/history.h>
 
 #include "executer.h"
 #include "cmd_interne.h"
@@ -17,21 +19,28 @@ enum {
     MaxDirs = 100,          // nbre max de repertoire dans PATH
 };
 
-/* Affiche le dossier courant dans le prompt
+/* Retour le prompt avec le dossier courant 
  * et substitue le fichier HOME par le caractere ~ */
-void afficher_prompt() 
+char* get_prompt() 
 {
-        char cwd[MaxLigne];
+        static char prompt[MaxLigne];
+	char cwd[MaxLigne];
         char *home_dir = getenv("HOME");
+
         if (getcwd(cwd, sizeof(cwd)) != NULL) {
                 if (home_dir != NULL && strncmp(cwd, home_dir, 
                         strlen(home_dir)) == 0) {
-                                printf("~%s? ", cwd + strlen(home_dir));
+                                snprintf(prompt,
+					 sizeof(prompt),
+					 "~%s? ",
+					 cwd + strlen(home_dir));
                 } else {
-                        printf("%s? ", cwd);
+                        snprintf(prompt, sizeof(prompt), "%s? ", cwd);
                 }
-                fflush(stdout);
+	} else {
+                snprintf(prompt, sizeof(prompt), "%s? ", cwd);
         }
+	return prompt;
 }
 
 /* Recupere les processus termines pour eviter les zombies */
@@ -64,7 +73,7 @@ void decouper_path(char* path, char* dirs[], int max_dirs) {
 int main (int argc, char * argv[]) 
 {
     
-    char ligne[MaxLigne];
+    char *ligne;
     Commandes cmds;
     char * dirs[MaxDirs];
     int arriere_plan;
@@ -76,12 +85,21 @@ int main (int argc, char * argv[])
     /* Decouper une partie de PATH en repertoires */
     decouper_path(getenv("PATH"), dirs, MaxDirs);
 
+    /* configure readline pour l'autocompletion des noms de fichers */
+    rl_attempted_completion_function = 
+            (rl_completion_func_t *)rl_filename_completion_function;
+
     /* Lire et traiter chaque ligne de commande */
-    for (
-        afficher_prompt();
-        fgets(ligne, sizeof ligne, stdin) != 0;
-        afficher_prompt() 
-    ) {
+    while(1) {
+        ligne = readline(get_prompt());
+
+        if (ligne == NULL) { // Ctrl+D
+	        break;
+	}
+
+	if (strlen(ligne) > 0) {
+	        add_history(ligne);
+	}
 
         /* Recherche les processus zombies */
         recuperer_enfant();
@@ -100,7 +118,7 @@ int main (int argc, char * argv[])
         }
 
 	executer_pipeline(cmds, nb_cmds, dirs, arriere_plan);
-	
+	free(ligne);
     }
 
     printf("Bye\n");
