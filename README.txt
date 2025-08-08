@@ -17,3 +17,14 @@ Modifier le shell élémentaire en intégrant les modificatiosn suivantes :
 - l'auto-complétion des noms de fichier
 - l'accès à la documentation en utilisant MAN
 - une makefile complète permettant de construire l'exécutable
+
+---
+
+## Compilation
+
+Pour compiler le projet, assurez-vous d'avoir la bibliothèque `readline` installée.
+Sur les systèmes basés sur Debian (comme Ubuntu), vous pouvez l'installer avec :
+`sudo apt-get install libreadline-dev`
+
+Ensuite, compilez le programme avec la commande suivante, qui lie tous les modules nécessaires :
+`gcc -o monShell main.c cmd_interne.c executer.c decouper.c redirection.c -lreadline`
