@@ -42,10 +42,37 @@ int mon_exit(char **mots) {
 
 }
 
+int mon_man(char **mots) {
+        if (mots[1] == NULL) {
+                fprintf(stderr, "man: veuillez specifier la page.\\n");
+		return 1;
+	}
+
+	char filepath[256];
+	snprintf(filepath, sizeof(filepath), "man/%s.txt", mots[1]);
+
+	FILE *file = fopen(filepath, "r");
+	if (file == NULL) {
+	        fprintf(stderr, "man: aucune entree pour %s \\n", mots[1]);
+		return 1;
+	}
+
+	char c;
+	while ((c = fgetc(file)) != EOF) {
+	        putchar(c);
+	}
+
+	putchar('\n');
+
+	fclose(file);
+	return 0; // succes
+}
+
 // Tableau des commandes internes
 CommandeInterne commandes_internes[] = {
         {"cd", mon_cd},
         {"exit",mon_exit},
+	{"man", mon_man},
         {NULL, NULL} // Marque la fin du tableau
 };
 
