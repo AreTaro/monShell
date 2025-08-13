@@ -1,0 +1,19 @@
+NOM
+       monShell - Un interpréteur de commandes simple.
+
+SYNOPSIS
+       monShell
+
+DESCRIPTION
+       monShell est un projet éducatif qui implémente les fonctionnalités de base
+       d'un shell UNIX, y compris l'exécution de commandes externes, les
+       commandes internes, les redirections et les pipes.
+
+COMMANDES INTERNES
+       Les commandes suivantes sont intégrées directement dans le shell :
+       - exit : Quitte le shell.
+       - cd   : Change le répertoire courant (si implémenté).
+       - man  : Affiche le manuel d'une commande.
+
+AUTEUR
+       <Votre Nom>

@@ -1,0 +1,10 @@
+NOM
+       cd - Change le répertoire de travail courant.
+
+SYNOPSIS
+       cd [répertoire]
+
+DESCRIPTION
+       Change le répertoire courant pour `répertoire`.
+       Si `répertoire` n'est pas fourni, le comportement peut varier
+       (souvent, il mène au répertoire personnel de l'utilisateur, si implémenté).

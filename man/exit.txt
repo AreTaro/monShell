@@ -1,0 +1,10 @@
+NOM
+       exit - Termine la session du shell.
+
+SYNOPSIS
+       exit [n]
+
+DESCRIPTION
+       La commande exit met fin à l'exécution du shell.
+       Si un argument `n` est fourni, le shell se termine avec le statut `n`.
+       Sinon, le statut de sortie est celui de la dernière commande exécutée.
